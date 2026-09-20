@@ -1,0 +1,10 @@
+.env
+credentials.json
+token.json
+__pycache__/
+*.pyc
+node_modules/
+.next/
+out/
+frontend/.env.local
+backend/.env
