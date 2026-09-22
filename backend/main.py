@@ -51,10 +51,13 @@ app.add_middleware(
 
 
 def _cookie_kwargs(max_age: int):
+    # Frontend (Vercel) and backend (Render) are different sites, so cookies
+    # set/sent via cross-site fetch are third-party: they need SameSite=None
+    # (which requires Secure). On localhost keep Lax.
     return {
         "httponly": True,
         "secure": COOKIE_SECURE,
-        "samesite": "lax",
+        "samesite": "none" if COOKIE_SECURE else "lax",
         "max_age": max_age,
         "path": "/",
     }
