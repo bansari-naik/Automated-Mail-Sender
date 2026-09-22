@@ -71,6 +71,9 @@ export default function Page() {
         setGmailEmail(s.email || null);
       });
       window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("gmail") === "error") {
+      setSendError("Google blocked the connection. Check Test users / redirect URI, then try again.");
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 

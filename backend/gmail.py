@@ -7,19 +7,16 @@ from email.mime.text import MIMEText
 
 from googleapiclient.discovery import build
 
-import auth
 
-
-def get_service():
-    creds = auth.load_credentials()
+def get_service(creds):
     if not creds:
         return None
     return build("gmail", "v1", credentials=creds)
 
 
-def get_profile_email():
+def get_profile_email(creds):
     """Return the connected Gmail address (for the header UI)."""
-    service = get_service()
+    service = get_service(creds)
     if not service:
         return None
     try:

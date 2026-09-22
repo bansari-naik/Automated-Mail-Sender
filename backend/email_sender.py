@@ -10,9 +10,11 @@ def is_valid(email):
     return bool(EMAIL_RE.match(email.strip()))
 
 
-def send_all(recipients, subject, body, resume_bytes=None, resume_filename="resume.pdf"):
-    """Send individually. Returns list of {email, ok, error} dicts."""
-    service = gmail.get_service()
+def send_all(service, recipients, subject, body, resume_bytes=None, resume_filename="resume.pdf"):
+    """Send individually. Returns list of {email, ok, error} dicts.
+
+    `service` must be a per-user Gmail API service (see gmail.get_service).
+    """
     if service is None:
         return [
             {"email": r, "ok": False, "error": "Gmail not connected."}

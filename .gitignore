@@ -8,3 +8,5 @@ node_modules/
 out/
 frontend/.env.local
 backend/.env
+instructions.md
+multiuser.md
