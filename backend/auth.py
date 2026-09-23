@@ -1,5 +1,6 @@
 """Google OAuth helpers — per-user credentials. No global token.json."""
 import json
+import logging
 import os
 import urllib.request
 from datetime import datetime, timezone
@@ -8,7 +9,17 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+log = logging.getLogger("mailhunt")
+
+# gmail.send does the sending. openid/email/profile are non-sensitive scopes
+# that let us identify who just logged in (sub + email) — no extra Google
+# verification needed for them.
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.send",
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+]
 
 
 class NeedsReauth(Exception):
@@ -61,14 +72,26 @@ def get_auth_url(state=None):
 
 def exchange_code(code: str, state: str | None = None) -> Credentials:
     flow = build_flow()
-    # google-auth-oauthlib validates `state` only if the same flow created the
-    # URL; we validate state ourselves in DB, so just exchange the code.
     flow.fetch_token(code=code)
     return flow.credentials
 
 
 def get_userinfo(creds: Credentials):
-    """Return (google_sub, email). Uses userinfo endpoint; falls back to Gmail profile."""
+    """Return (google_sub, email). Tries ID token, userinfo, Gmail profile."""
+    # 1. ID token (comes with the `openid` scope — no extra HTTP call).
+    try:
+        from google.oauth2 import id_token as id_token_mod
+
+        info = id_token_mod.verify_oauth2_token(
+            creds.id_token, Request(), _env("GOOGLE_CLIENT_ID")
+        )
+        sub, email = info.get("sub"), info.get("email")
+        if sub and email:
+            return sub, email
+        log.warning("ID token missing sub/email")
+    except Exception as e:
+        log.warning("ID token verify failed: %s", e)
+    # 2. Userinfo endpoint.
     try:
         req = urllib.request.Request(
             "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -76,21 +99,22 @@ def get_userinfo(creds: Credentials):
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode())
-        sub = data.get("sub")
-        email = data.get("email")
+        sub, email = data.get("sub"), data.get("email")
         if sub and email:
             return sub, email
-    except Exception:
-        pass
-    # Fallback: Gmail profile gives email but no stable sub.
+        log.warning("Userinfo missing sub/email: %s", data)
+    except Exception as e:
+        log.warning("Userinfo failed: %s", e)
+    # 3. Fallback: Gmail profile gives email but no stable sub.
     try:
         import gmail as gmail_mod
 
         email = gmail_mod.get_profile_email(creds)
         if email:
             return email, email
-    except Exception:
-        pass
+        log.warning("Gmail profile returned no email")
+    except Exception as e:
+        log.warning("Gmail profile failed: %s", e)
     raise NeedsReauth("Could not identify Google account.")
 
 
