@@ -12,24 +12,8 @@ import ConnectModal from "../components/ConnectModal";
 import { parseEmails } from "../lib/emails";
 import { getAuthUrl, getStatus, logout, sendAll } from "../lib/api";
 
-const DEFAULT_SUBJECT = "AI Internship Application – Bansari Naik";
-const DEFAULT_BODY = `Dear Hiring Team,
-
-I am Bansari Naik, a final-year B.Tech student specializing in Artificial Intelligence and Data Science at DJSCE, Mumbai.
-
-I am currently looking for an AI internship opportunity where I can work on practical AI systems and contribute to an engineering team.
-
-I have hands-on experience working with agentic AI workflows, RAG-based systems, backend APIs and full-stack applications.
-
-I have attached my resume for your consideration.
-
-GitHub: https://github.com/
-LinkedIn: https://linkedin.com/in/
-
-Thank you for your time.
-
-Best regards,
-Bansari Naik`;
+const DEFAULT_SUBJECT = "";
+const DEFAULT_BODY = "";
 
 export default function Page() {
   const [raw, setRaw] = useState("");
@@ -54,8 +38,8 @@ export default function Page() {
   // Restore conveniences from localStorage (subject/body only — not recruiter emails).
   useEffect(() => {
     try {
-      const s = localStorage.getItem("mailhunt.subject");
-      const b = localStorage.getItem("mailhunt.body");
+      const s = localStorage.getItem("mailhunt.subject.v2");
+      const b = localStorage.getItem("mailhunt.body.v2");
       if (s) setSubject(s);
       if (b) setBody(b);
     } catch {}
@@ -80,8 +64,8 @@ export default function Page() {
   // Persist conveniences.
   useEffect(() => {
     try {
-      localStorage.setItem("mailhunt.subject", subject);
-      localStorage.setItem("mailhunt.body", body);
+      localStorage.setItem("mailhunt.subject.v2", subject);
+      localStorage.setItem("mailhunt.body.v2", body);
     } catch {}
   }, [subject, body]);
 
