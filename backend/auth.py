@@ -119,9 +119,11 @@ def get_userinfo(creds: Credentials):
 
 
 def creds_to_db_dict(creds: Credentials):
+    # google-auth compares expiry against its own naive utcnow(), so the
+    # expiry must stay timezone-naive (like Google sets it).
     expiry = creds.expiry
-    if expiry is not None and expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
+    if expiry is not None and expiry.tzinfo is not None:
+        expiry = expiry.replace(tzinfo=None)
     return {
         "access_token": creds.token,
         "refresh_token": creds.refresh_token,  # may be None on re-consent
@@ -143,6 +145,9 @@ def db_dict_to_creds(data) -> Credentials:
             expiry = datetime.fromisoformat(expiry)
         except ValueError:
             expiry = None
+    # Must stay naive: google-auth compares against naive utcnow().
+    if expiry is not None and expiry.tzinfo is not None:
+        expiry = expiry.replace(tzinfo=None)
     creds = Credentials(
         token=data.get("access_token"),
         refresh_token=data.get("refresh_token"),
